@@ -42,7 +42,10 @@
 #define DATA_TRANSMISSION_TASK_STACK_SIZE (2048)
 
 /* Private types -------------------------------------------------------------*/
-
+typedef struct
+{
+    char text[100];
+} GeneralText;
 /* Private functions declaration ---------------------------------------------*/
 static void *UserDataTransmission_Task(void *arg);
 void throwBall(void);
@@ -150,108 +153,12 @@ T_DjiReturnCode DjiTest_DataTransmissionStartService(void)
 #pragma GCC diagnostic ignored "-Wreturn-type"
 #endif
 
-uint8_t dataToBeSent[1000] = "DJI Data Transmission Test Data.";
-static void *UserDataTransmission_Task(void *arg)
-{
-    T_DjiReturnCode djiStat;
-    // uint8_t dataToBeSent[100] = "DJI Data Transmission Test Data.";
-    // uint8_t dataToBeSentDemo[] = "DJI Data Transmission Test Data. ";
-    T_DjiDataChannelState state = {0};
-    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
-    E_DjiChannelAddress channelAddress;
-
-    USER_UTIL_UNUSED(arg);
-    // int number = 1;
-    while (1)
-    {
-        osalHandler->TaskSleepMs(500 / DATA_TRANSMISSION_TASK_FREQ);
-        // sprintf(dataToBeSent,"%s%d", dataToBeSentDemo, number);
-        // printf("%s\n",dataToBeSent);
-        // number++;
-        channelAddress = DJI_CHANNEL_ADDRESS_MASTER_RC_APP;
-        djiStat = DjiLowSpeedDataChannel_SendData(channelAddress, dataToBeSent, sizeof(dataToBeSent));
-        if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-            USER_LOG_ERROR("send data to mobile error.");
-
-        djiStat = DjiLowSpeedDataChannel_GetSendDataState(channelAddress, &state);
-        if (djiStat == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-        {
-            USER_LOG_DEBUG(
-                "send to mobile state: realtimeBandwidthBeforeFlowController: %d, realtimeBandwidthAfterFlowController: %d, busyState: %d.",
-                state.realtimeBandwidthBeforeFlowController, state.realtimeBandwidthAfterFlowController,
-                state.busyState);
-        }
-        else
-        {
-            USER_LOG_ERROR("get send to mobile channel state error.");
-        }
-
-        if (s_aircraftInfoBaseInfo.mountPosition == DJI_MOUNT_POSITION_PAYLOAD_PORT_NO1 ||
-            s_aircraftInfoBaseInfo.mountPosition == DJI_MOUNT_POSITION_PAYLOAD_PORT_NO2 ||
-            s_aircraftInfoBaseInfo.mountPosition == DJI_MOUNT_POSITION_PAYLOAD_PORT_NO3)
-        {
-            channelAddress = DJI_CHANNEL_ADDRESS_EXTENSION_PORT;
-            djiStat = DjiLowSpeedDataChannel_SendData(channelAddress, dataToBeSent, sizeof(dataToBeSent));
-            if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-                USER_LOG_ERROR("send data to onboard computer error.");
-
-            djiStat = DjiLowSpeedDataChannel_GetSendDataState(channelAddress, &state);
-            if (djiStat == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-            {
-                USER_LOG_DEBUG(
-                    "send to onboard computer state: realtimeBandwidthBeforeFlowController: %d, realtimeBandwidthAfterFlowController: %d, busyState: %d.",
-                    state.realtimeBandwidthBeforeFlowController, state.realtimeBandwidthAfterFlowController,
-                    state.busyState);
-            }
-            else
-            {
-                USER_LOG_ERROR("get send to onboard computer channel state error.");
-            }
-
-            if (DjiPlatform_GetSocketHandler() != NULL)
-            {
-                djiStat = DjiHighSpeedDataChannel_SendDataStreamData(dataToBeSent, sizeof(dataToBeSent));
-                if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-                    USER_LOG_ERROR("send data to data stream error.");
-
-                djiStat = DjiHighSpeedDataChannel_GetDataStreamState(&state);
-                if (djiStat == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-                {
-                    USER_LOG_DEBUG(
-                        "data stream state: realtimeBandwidthLimit: %d, realtimeBandwidthBeforeFlowController: %d, busyState: %d.",
-                        state.realtimeBandwidthLimit, state.realtimeBandwidthBeforeFlowController, state.busyState);
-                }
-                else
-                {
-                    USER_LOG_ERROR("get data stream state error.");
-                }
-            }
-        }
-        else if (s_aircraftInfoBaseInfo.mountPosition == DJI_MOUNT_POSITION_EXTENSION_PORT)
-        {
-            channelAddress = DJI_CHANNEL_ADDRESS_PAYLOAD_PORT_NO1;
-            djiStat = DjiLowSpeedDataChannel_SendData(channelAddress, dataToBeSent, sizeof(dataToBeSent));
-            if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-                USER_LOG_ERROR("send data to onboard computer error.");
-
-            djiStat = DjiLowSpeedDataChannel_GetSendDataState(channelAddress, &state);
-            if (djiStat == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-            {
-                USER_LOG_DEBUG(
-                    "send to onboard computer state: realtimeBandwidthBeforeFlowController: %d, realtimeBandwidthAfterFlowController: %d, busyState: %d.",
-                    state.realtimeBandwidthBeforeFlowController, state.realtimeBandwidthAfterFlowController,
-                    state.busyState);
-            }
-            else
-            {
-                USER_LOG_ERROR("get send to onboard computer channel state error.");
-            }
-        }
-    }
+static void arucoDataTransmission(void* arg){
+    GeneralText *arucoData = (GeneralText*)arg;
+    char *aruco = arucoData->text;
+    sendDataToMobile(aruco);
 }
-
-// uint8_t dataToBeSent[100] = "DJI Data Transmission Test Data.";
-static void sendDataToMobile(void *arg)
+static void sendDataToMobile(char *dataToBeSent)
 {
     T_DjiReturnCode djiStat;
     T_DjiDataChannelState state = {0};
@@ -379,9 +286,10 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
         if (time != pre_time)
         {
             pre_time = time;
-            sprintf((char *)dataToBeSent, "%s", aruco);
-            printf("location: %s\n", dataToBeSent);
-            printf("string length: %d\n", strlen(dataToBeSent));
+            GeneralText arucoData;
+            stpcpy(arucoData.text, aruco);
+            printf("location: %s\n", arucoData.text);
+            printf("string length: %d\n", strlen(arucoData.text));
             if (osalHandler->TaskCreate("user_transmission_task", sendDataToMobile,
                                         DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
                 DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
@@ -391,9 +299,9 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
             }
         }
         else
-        {
-            sprintf((char *)dataToBeSent, "null");
-            printf("location: %s\n", dataToBeSent);
+        {   GeneralText arucoData;
+            stpcpy(arucoData.text, "null");
+            printf("location: %s\n", arucoData.text);
             if (osalHandler->TaskCreate("user_transmission_task", sendDataToMobile,
                                         DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
                 DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
@@ -415,8 +323,9 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
             // write_to_memcached("find_circle", "0");
             return;
         }
-        sprintf(dataToBeSent, "%f,%f", x_coor, y_coor);
-        printf("dataToBeSent: %s\n", dataToBeSent);
+        GeneralText circleData;
+        sprintf(circleData.text, "%f,%f", x_coor, y_coor);
+        printf("dataToBeSent: %s\n", circleData.text);
         if (osalHandler->TaskCreate("circle_transmission_task", sendDataToMobile,
                                     DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
             DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
@@ -513,8 +422,9 @@ void throwBall()
         // write_to_memcached("find_circle", "0");
         return;
     }
-    sprintf(dataToBeSent, "%f,%f", x_coor, y_coor);
-    printf("dataToBeSent: %s\n", dataToBeSent);
+    GeneralText circleData;
+    sprintf(circleData.text, "%f,%f", x_coor, y_coor);
+    printf("dataToBeSent: %s\n", circleData.text);
     if (osalHandler->TaskCreate("circle_transmission_task", sendDataToMobile,
                                 DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
         DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
