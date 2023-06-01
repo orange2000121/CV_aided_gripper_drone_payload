@@ -28,6 +28,8 @@ class LimitedList:
             return np.median(self.items)
     def calculate_median(self):
         return np.median(self.items)
+    def calculate_std(self):
+        return np.std(self.items)
     
 class Aruco:
     mtx = np.array([[511.30105788, 0.0, 330.14455905], [0.0, 510.54688952, 247.69595943],[0.0, 0.0, 1.0]])
@@ -55,7 +57,6 @@ class Aruco:
             return True
             
     def estimatePoseSingleMarkers(self,corner):
-        
         rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corner, self.markerLength, self.mtx, self.dist)
         self.rvec = rvec
         self.tvec = tvec
@@ -76,6 +77,8 @@ class Aruco:
         self.roll_list.add_element(math.degrees(roll))
         return self.getCoordinate()
     def getCoordinate(self):
+        if(self.checkStd() == False):
+            return None,None,None,None,None,None
         x = self.x_list.calculate_median()
         y = self.y_list.calculate_median()
         z = self.z_list.calculate_median()
@@ -83,6 +86,14 @@ class Aruco:
         pitch = self.pitch_list.calculate_median()
         roll = self.roll_list.calculate_median()
         return x,y,z,yaw,pitch,roll
+    def checkStd(self):
+        x_std = self.x_list.calculate_std()
+        y_std = self.y_list.calculate_std()
+        z_std = self.z_list.calculate_std()
+        yaw_std = self.yaw_list.calculate_std()
+        if x_std > 0.02 or y_std > 0.02 or z_std > 0.02 or yaw_std > 2:
+            return False
+        return True
     def rvec_to_euler_angles(self,rvec):
         rvec_flipped = rvec[0][0]*-1 
         R_mat, jacobian=cv2.Rodrigues(rvec_flipped)        
@@ -99,7 +110,6 @@ class Aruco:
             yaw = 0
         return yaw, pitch, roll
     def drawAruco(self, frame):
-        
         frame = cv2.drawFrameAxes(frame, self.mtx,self.dist,self.rvec,self.tvec, 0.05)
         return frame
 
@@ -113,7 +123,7 @@ def addNewAruco(id,corner,arucoList):
 
 def main():
     #-----------------setting-----------------
-    outVedio = True
+    outVedio = False
     drawText = False
     showImage = False
     drawAruco = False
@@ -136,20 +146,17 @@ def main():
             os.makedirs('output_vedio/')
         out = cv2.VideoWriter('output_vedio/'+outputvediofolder+'.mp4', fourcc, 20.0, (640,  480))
 
-        # if(mc.get("find_circle") == b'1' or True):
     while True:
         ret, frame = cap.read()
         #-----------------find circle-----------------
-
-        circle_img = circle_finder_faster.QQcircle(frame,mc)
-        # LocateCircle.quickcircle(frame,mc)
-            
+        if(mc.get("find_circle") == b'1' or False):
+            circle_img = circle_finder_faster.QQcircle(frame,mc)            
 
         #-----------------find aruco-----------------
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50)
         arucoParams = cv2.aruco.DetectorParameters_create()
         (corners, ids, rejected) = cv2.aruco.detectMarkers(frame, arucoDict,parameters=arucoParams)
-        frame = cv2.aruco.drawDetectedMarkers(	frame, corners, ids, (0,255,0)	)
+        frame = cv2.aruco.drawDetectedMarkers(frame, corners, ids, (0,255,0))
 
         if len(corners) > 0:
             for i in range(len(ids)):
