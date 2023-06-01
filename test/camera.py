@@ -8,6 +8,7 @@ import numpy as np
 import math 
 import LocateCircle
 import save_aruco2csv
+import circle_finder_faster
 from final_coord import finalCoor
 
 class LimitedList:
@@ -112,7 +113,7 @@ def addNewAruco(id,corner,arucoList):
 
 def main():
     #-----------------setting-----------------
-    outVedio = False
+    outVedio = True
     drawText = False
     showImage = False
     drawAruco = False
@@ -135,12 +136,14 @@ def main():
             os.makedirs('output_vedio/')
         out = cv2.VideoWriter('output_vedio/'+outputvediofolder+'.mp4', fourcc, 20.0, (640,  480))
 
+        # if(mc.get("find_circle") == b'1' or True):
     while True:
         ret, frame = cap.read()
         #-----------------find circle-----------------
-        # if(mc.get("find_circle") == b'1' or True):
-        #     LocateCircle.quickcircle(frame,mc)
-        
+
+        circle_img = circle_finder_faster.QQcircle(frame,mc)
+        # LocateCircle.quickcircle(frame,mc)
+            
 
         #-----------------find aruco-----------------
         arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50)
@@ -228,8 +231,6 @@ def rvec_to_euler_angles(rvec):
 
     R_mat, jacobian=cv2.Rodrigues(rvec_flipped)
 
-    
-    # sleep(1)
     pitch = math.atan2(R_mat[2,1],R_mat[2,2])
     sy = math.sqrt((R_mat[0][0]*R_mat[0][0])+ (R_mat[1][0]*R_mat[1][0]))
     singular = sy<1e-6

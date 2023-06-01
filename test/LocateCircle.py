@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-# videoSource = 0	# webcam
+#videoSource = 0	# webcam
 # videoSource = 'output_vedio/2023-05-22-17-29-43.mp4'
 sampleRange = 3
 minRadius = 10
@@ -119,6 +119,9 @@ def pixel2meter(x_pxl, y_pxl,r):
 	y_pos = float(imag2circle_center_y) * pxl2cm / 100
 
 	return y_pos, x_pos
+
+
+
 
 def quickcircle(frame,mc):
 	image_width = 240 * 2
