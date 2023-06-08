@@ -27,6 +27,7 @@
 #include <math.h>
 #include "../gripper/gripper.h"
 #include "../aruco_location/aruco_location.h"
+#include "../custom_module/trigger_switch.h"
 // #include "../custom_module/throw_ball.h"
 #include "test_data_transmission.h"
 #include "dji_logger.h"
@@ -423,6 +424,10 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
             return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
         }
     }
+    else if (strcmp(printData, "stop_circle") == 0)
+    {
+        stopCircle();
+    }
     else if (strcmp(printData, "throw") ==0){
         if (osalHandler->TaskCreate("throwBall", throwBall,
                                     DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
@@ -431,10 +436,16 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
             USER_LOG_ERROR("user data transmission task create error.");
             return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
         }
-    }
-    else if (strcmp(printData, "stop_circle") == 0)
-    {
-        stopCircle();
+    }else if (strcmp(printData, "grip") ==0){
+        TriggerEvent trigger_event;
+        trigger_event.triggered = false;
+        if (osalHandler->TaskCreate("grip", trigger,
+                                    DATA_TRANSMISSION_TASK_STACK_SIZE, &trigger_event, &s_userDataTransmissionThread) !=
+            DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
+        {
+            USER_LOG_ERROR("user data transmission task create error.");
+            return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+        }
     }
 
     osalHandler->Free(printData);
