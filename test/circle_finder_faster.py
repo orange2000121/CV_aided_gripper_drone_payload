@@ -117,16 +117,15 @@ def QQcircle(frame,mc):
 				'y_coor' : y_coor
 			}
 			sendCircle.append(temp)
-			# cv2.putText(circleImg, 'x: '+str(x_coor), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-			# cv2.putText(circleImg, 'y: '+str(y_coor), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+			# cv2.putText(circleImg, 'x: '+'{:0.3f}'.format(x_coor), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+			# cv2.putText(circleImg, 'y: '+'{:0.3f}'.format(y_coor), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 	else:
-		# print('no circle')
 		mc.set('x_coor',"0")
 		mc.set('y_coor',"0")
 	if(sendCircle != []):
-		mc.set('circle',json.dumps(sendCircle[0]))
+		mc.set('circle',json.dumps([sendCircle[0]]))
 	else:
-		mc.set('circle',json.dumps({'x_coor':0,'y_coor':0}))
+		mc.set('circle',json.dumps([{'x_coor':0,'y_coor':0}]))
 	mc.set('circle_time', cv2.getTickCount())
 	# cv2.imshow('Circle', circleImg)
 	if cv2.waitKey(1) == 'q':

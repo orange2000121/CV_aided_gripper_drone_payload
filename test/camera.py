@@ -149,7 +149,7 @@ def main():
     while True:
         ret, frame = cap.read()
         #-----------------find circle-----------------
-        if(mc.get("find_circle") == b'1' or False):
+        if(mc.get("find_circle") == b'1' or True):
             circle_img = circle_finder_faster.QQcircle(frame,mc)            
 
         #-----------------find aruco-----------------

@@ -45,7 +45,7 @@
 
 /* Private functions declaration ---------------------------------------------*/
 static void *UserDataTransmission_Task(void *arg);
-void throwBall(void);
+void throwBall(void* arg);
 void stopCircle();
 static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len);
 static T_DjiReturnCode ReceiveDataFromOnboardComputer(const uint8_t *data, uint16_t len);
@@ -405,19 +405,26 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
     }
     else if (strcmp(printData, "circle") == 0)
     {
-        float threadhold = 0.2;
         write_to_memcached("find_circle", "1");
-        double x_coor = getMemData2Double("x_coor");
-        double y_coor = getMemData2Double("y_coor");
-        if (-threadhold < x_coor && x_coor < threadhold && -threadhold < y_coor && y_coor < threadhold && (x_coor != 0 || y_coor != 0))
-        {
-            gripperSwitch(1);
-            // write_to_memcached("find_circle", "0");
-            return;
+        char* circle;
+        getMemData("circle", &circle);
+        if(circle != NULL){
+            printf("circle: %s\n", circle);
+        }else{
+            printf("circle is null\n");
         }
-        sprintf(dataToBeSent, "%f,%f", x_coor, y_coor);
+        sprintf((char *)dataToBeSent, "%s", circle);
         printf("dataToBeSent: %s\n", dataToBeSent);
         if (osalHandler->TaskCreate("circle_transmission_task", sendDataToMobile,
+                                    DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
+            DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
+        {
+            USER_LOG_ERROR("user data transmission task create error.");
+            return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+        }
+    }
+    else if (strcmp(printData, "throw") ==0){
+        if (osalHandler->TaskCreate("throwBall", throwBall,
                                     DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
             DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
         {
@@ -480,49 +487,21 @@ static T_DjiReturnCode ReceiveDataFromPayload(const uint8_t *data, uint16_t len)
 }
 
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/
-void throwBall()
+void throwBall(void* arg)
 {
-    float threadhold = 0.2;
-    // memcached_server_st *servers = NULL;
-    // memcached_st *memc;
-    // memcached_return rc;
-    // // memcached_server_st *memcached_servers_parse(char *server_strings);
-    // memc = memcached_create(NULL);
-
-    // servers = memcached_server_list_append(servers, "localhost", 11211, &rc);
-    // rc = memcached_server_push(memc, servers);
-
-    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
-    // size_t value_length;
-    // uint32_t flags;
-    // circle *c = (circle *)malloc(sizeof(circle));
-    write_to_memcached("find_circle", "1");
-    // printf("circle: ");
-    // run_circle = true;
-    // while (run_circle)
-    // {
-    // osalHandler->TaskSleepMs(300);
-    double x_coor = getMemData2Double("x_coor");
-    double y_coor = getMemData2Double("y_coor");
-    // c->x = x_coor;
-    // c->y = y_coor;
-    printf("x_coor: %.3f, y_coor: %.3f\n", x_coor, y_coor);
-    if (-threadhold < x_coor && x_coor < threadhold && -threadhold < y_coor && y_coor < threadhold && (x_coor != 0 || y_coor != 0))
-    {
-        gripperSwitch(1);
-        // write_to_memcached("find_circle", "0");
-        return;
+    while(1){
+        float threadhold = 0.2;
+        write_to_memcached("find_circle", "1");
+        double x_coor = getMemData2Double("x_coor");
+        double y_coor = getMemData2Double("y_coor");
+        printf("x_coor: %.3f, y_coor: %.3f\n", x_coor, y_coor);
+        if (-threadhold < x_coor && x_coor < threadhold && -threadhold < y_coor && y_coor < threadhold && (x_coor != 0 || y_coor != 0))
+        {
+            gripperSwitch(1);
+            write_to_memcached("find_circle", "0");
+            return;
+        }
     }
-    sprintf(dataToBeSent, "%f,%f", x_coor, y_coor);
-    printf("dataToBeSent: %s\n", dataToBeSent);
-    if (osalHandler->TaskCreate("circle_transmission_task", sendDataToMobile,
-                                DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-        DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-    {
-        USER_LOG_ERROR("user data transmission task create error.");
-        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-    }
-    // }
 }
 void stopCircle()
 {
