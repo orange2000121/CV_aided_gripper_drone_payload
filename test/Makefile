@@ -1,2 +1,2 @@
 main:
-	g++ setmemcached.c  -o  mem -I /usr/local/ -lmemcached
+	g++ switch.c  -o  switch -I /usr/local/ -lmemcached -lwiringPi

@@ -17,5 +17,5 @@ while True:
     y_coor = mc.get('y_coor')
     find_circle = mc.get('find_circle')
     circle = mc.get('circle')
-    print(circle)
+    print(aruco)
     sleep(0.5)
