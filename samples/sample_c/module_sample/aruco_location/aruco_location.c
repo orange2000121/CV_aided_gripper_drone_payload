@@ -4,7 +4,8 @@ double getMemData2Double(char *key);
 /*
 arr = [x, y, z, time]
 */
-void getLocationFromMemcache(char** aruco, double *time)
+
+void getLocationFromMemcache(char **aruco, double *time)
 {
     memcached_server_st *servers = NULL;
     memcached_st *memc;
@@ -21,6 +22,8 @@ void getLocationFromMemcache(char** aruco, double *time)
     *aruco = memcached_get(memc, "aruco", strlen("aruco"), &value_length, &flags, &rc);
     printf("aruco: %s\n", *aruco);
     *time = getMemData2Double("time");
+    memcached_free(memc);
+    memcached_server_list_free(servers);
 }
 
 double getMemData2Double(char *key)
@@ -35,13 +38,14 @@ double getMemData2Double(char *key)
     // 执行读取操作
     size_t value_length;
     uint32_t flags;
-    char* return_value = memcached_get(memc, key, strlen(key), &value_length, &flags, &rc);
+    char *return_value = memcached_get(memc, key, strlen(key), &value_length, &flags, &rc);
     if (rc == MEMCACHED_SUCCESS)
     {
         // 清理资源
         memcached_free(memc);
         memcached_server_list_free(servers);
-        if(strcmp(return_value, "null") == 0){
+        if (strcmp(return_value, "null") == 0)
+        {
             free(return_value);
             return 0;
         }
@@ -51,10 +55,12 @@ double getMemData2Double(char *key)
     }
     // 释放 memcached_get 分配的内存
     // free(return_value);
+    memcached_free(memc);
+    memcached_server_list_free(servers);
     return 0;
 }
 
-void getMemData(const char *key, char** return_value)
+void getMemData(const char *key, char **return_value)
 {
     memcached_st *memc;
     memcached_return rc;
@@ -71,6 +77,9 @@ void getMemData(const char *key, char** return_value)
     // {
     //     printf("getMemData: %s\n", return_value);
     // }
+
+    memcached_free(memc);
+    memcached_server_list_free(servers);
 }
 int write_to_memcached(const char *key, const char *value)
 {

@@ -1,5 +1,7 @@
-void trigger(void* arg);
-typedef struct
-{
-    bool triggered;
-} TriggerEvent;
+#ifndef __TRIGGER_SWITCH_H__
+#define __TRIGGER_SWITCH_H__
+
+void trigger(void *arg);
+extern int lastTriggerStatus;
+
+#endif

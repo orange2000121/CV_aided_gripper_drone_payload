@@ -46,7 +46,7 @@
 
 /* Private functions declaration ---------------------------------------------*/
 static void *UserDataTransmission_Task(void *arg);
-void throwBall(void* arg);
+void throwBall(void *arg);
 void stopCircle();
 static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len);
 static T_DjiReturnCode ReceiveDataFromOnboardComputer(const uint8_t *data, uint16_t len);
@@ -133,13 +133,13 @@ T_DjiReturnCode DjiTest_DataTransmissionStartService(void)
         return DJI_ERROR_SYSTEM_MODULE_CODE_NONSUPPORT;
     }
     // data transmission
-    // if (osalHandler->TaskCreate("user_transmission_task", UserDataTransmission_Task,
-    //                             DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-    //     DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-    // {
-    //     USER_LOG_ERROR("user data transmission task create error.");
-    //     return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-    // }
+    if (osalHandler->TaskCreate("user_transmission_task", UserDataTransmission_Task,
+                                DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
+        DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
+    {
+        USER_LOG_ERROR("user data transmission task create error.");
+        return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    }
 
     return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
 }
@@ -152,6 +152,7 @@ T_DjiReturnCode DjiTest_DataTransmissionStartService(void)
 #endif
 
 uint8_t dataToBeSent[1000] = "DJI Data Transmission Test Data.";
+int sendMode = 0;
 static void *UserDataTransmission_Task(void *arg)
 {
     T_DjiReturnCode djiStat;
@@ -165,10 +166,21 @@ static void *UserDataTransmission_Task(void *arg)
     // int number = 1;
     while (1)
     {
-        osalHandler->TaskSleepMs(500 / DATA_TRANSMISSION_TASK_FREQ);
-        // sprintf(dataToBeSent,"%s%d", dataToBeSentDemo, number);
-        // printf("%s\n",dataToBeSent);
-        // number++;
+        switch (sendMode)
+        {
+        case 0:
+            arucoLocation();
+            break;
+        case 1:
+            circleLocation();
+            break;
+        case 2:
+            trigger(&dataToBeSent);
+            break;
+        default:
+            break;
+        }
+        osalHandler->TaskSleepMs(200 / DATA_TRANSMISSION_TASK_FREQ);
         channelAddress = DJI_CHANNEL_ADDRESS_MASTER_RC_APP;
         djiStat = DjiLowSpeedDataChannel_SendData(channelAddress, dataToBeSent, sizeof(dataToBeSent));
         if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
@@ -372,80 +384,31 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
     }
     else if (strcmp(printData, "location") == 0)
     {
-        // 获取当前位置
-        // double location[7] = {0};
-        char *aruco;
-        double time;
-        getLocationFromMemcache(&aruco, &time);
-        if (time != pre_time)
-        {
-            pre_time = time;
-            sprintf((char *)dataToBeSent, "%s", aruco);
-            printf("location: %s\n", dataToBeSent);
-            printf("string length: %d\n", strlen(dataToBeSent));
-            if (osalHandler->TaskCreate("user_transmission_task", sendDataToMobile,
-                                        DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-                DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-            {
-                USER_LOG_ERROR("user data transmission task create error.");
-                return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-            }
-        }
-        else
-        {
-            sprintf((char *)dataToBeSent, "null");
-            printf("location: %s\n", dataToBeSent);
-            if (osalHandler->TaskCreate("user_transmission_task", sendDataToMobile,
-                                        DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-                DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-            {
-                USER_LOG_ERROR("user data transmission task create error.");
-                return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-            }
-        }
+        sendMode = 0;
     }
     else if (strcmp(printData, "circle") == 0)
     {
-        write_to_memcached("find_circle", "1");
-        char* circle;
-        getMemData("circle", &circle);
-        if(circle != NULL){
-            printf("circle: %s\n", circle);
-        }else{
-            printf("circle is null\n");
-        }
-        sprintf((char *)dataToBeSent, "%s", circle);
-        printf("dataToBeSent: %s\n", dataToBeSent);
-        if (osalHandler->TaskCreate("circle_transmission_task", sendDataToMobile,
-                                    DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-            DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-        {
-            USER_LOG_ERROR("user data transmission task create error.");
-            return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-        }
+        sendMode = 1;
     }
     else if (strcmp(printData, "stop_circle") == 0)
     {
         stopCircle();
     }
-    else if (strcmp(printData, "throw") ==0){
-        if (osalHandler->TaskCreate("throwBall", throwBall,
-                                    DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
-            DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-        {
-            USER_LOG_ERROR("user data transmission task create error.");
-            return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-        }
-    }else if (strcmp(printData, "grip") ==0){
-        TriggerEvent trigger_event;
-        trigger_event.triggered = false;
-        if (osalHandler->TaskCreate("grip", trigger,
-                                    DATA_TRANSMISSION_TASK_STACK_SIZE, &trigger_event, &s_userDataTransmissionThread) !=
-            DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
-        {
-            USER_LOG_ERROR("user data transmission task create error.");
-            return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
-        }
+    // else if (strcmp(printData, "throw") == 0)
+    // {
+    //     if (osalHandler->TaskCreate("throwBall", throwBall,
+    //                                 DATA_TRANSMISSION_TASK_STACK_SIZE, NULL, &s_userDataTransmissionThread) !=
+    //         DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
+    //     {
+    //         USER_LOG_ERROR("user data transmission task create error.");
+    //         return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+    //     }
+    // }
+    else if (strcmp(printData, "grip") == 0)
+    {
+        sendMode = 2;
+        lastTriggerStatus = 0;
+        printf("sendMode: %d\n", sendMode);
     }
 
     osalHandler->Free(printData);
@@ -498,24 +461,59 @@ static T_DjiReturnCode ReceiveDataFromPayload(const uint8_t *data, uint16_t len)
 }
 
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/
-void throwBall(void* arg)
-{
-    while(1){
-        float threadhold = 0.2;
-        write_to_memcached("find_circle", "1");
-        double x_coor = getMemData2Double("x_coor");
-        double y_coor = getMemData2Double("y_coor");
-        printf("x_coor: %.3f, y_coor: %.3f\n", x_coor, y_coor);
-        if (-threadhold < x_coor && x_coor < threadhold && -threadhold < y_coor && y_coor < threadhold && (x_coor != 0 || y_coor != 0))
-        {
-            gripperSwitch(1);
-            write_to_memcached("find_circle", "0");
-            return;
-        }
-    }
-}
+// void throwBall(void *arg)
+// {
+//     while (1)
+//     {
+//         float threadhold = 0.2;
+//         write_to_memcached("find_circle", "1");
+//         double x_coor = getMemData2Double("x_coor");
+//         double y_coor = getMemData2Double("y_coor");
+//         printf("x_coor: %.3f, y_coor: %.3f\n", x_coor, y_coor);
+//         if (-threadhold < x_coor && x_coor < threadhold && -threadhold < y_coor && y_coor < threadhold && (x_coor != 0 || y_coor != 0))
+//         {
+//             gripperSwitch(1);
+//             write_to_memcached("find_circle", "0");
+//             return;
+//         }
+//     }
+// }
 void stopCircle()
 {
     // run_circle = false;
     write_to_memcached("find_circle", "0");
+}
+void arucoLocation()
+{
+    char *aruco;
+    double time;
+    getLocationFromMemcache(&aruco, &time);
+    if (time != pre_time)
+    {
+        pre_time = time;
+        sprintf((char *)dataToBeSent, "%s", aruco);
+        printf("location: %s\n", dataToBeSent);
+        printf("string length: %d\n", strlen(dataToBeSent));
+    }
+    else
+    {
+        sprintf((char *)dataToBeSent, "null");
+        printf("location: %s\n", dataToBeSent);
+    }
+}
+void circleLocation()
+{
+    write_to_memcached("find_circle", "1");
+    char *circle;
+    getMemData("circle", &circle);
+    if (circle != NULL)
+    {
+        printf("circle: %s\n", circle);
+    }
+    else
+    {
+        printf("circle is null\n");
+    }
+    sprintf((char *)dataToBeSent, "%s", circle);
+    printf("dataToBeSent: %s\n", dataToBeSent);
 }
