@@ -1,2 +1,2 @@
 main:
-	g++ switch.c  -o  switch -I /usr/local/ -lmemcached -lwiringPi
+	g++ gripp.c  -o  switch -I /usr/local/ -lmemcached -lwiringPi

@@ -177,6 +177,9 @@ static void *UserDataTransmission_Task(void *arg)
         case 2:
             trigger(&dataToBeSent);
             break;
+        case 3:
+            getSonarDistance();
+            break;
         default:
             break;
         }
@@ -410,6 +413,10 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
         lastTriggerStatus = 0;
         printf("sendMode: %d\n", sendMode);
     }
+    else if (strcmp(printData, "sonar") == 0)
+    {
+        sendMode = 3;
+    }
 
     osalHandler->Free(printData);
 
@@ -515,5 +522,12 @@ void circleLocation()
         printf("circle is null\n");
     }
     sprintf((char *)dataToBeSent, "%s", circle);
+    printf("dataToBeSent: %s\n", dataToBeSent);
+}
+void getSonarDistance()
+{
+    char *sonar;
+    getMemData("sonar", &sonar);
+    sprintf((char *)dataToBeSent, "%s", sonar);
     printf("dataToBeSent: %s\n", dataToBeSent);
 }

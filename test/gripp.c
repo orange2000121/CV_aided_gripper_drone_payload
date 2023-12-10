@@ -21,13 +21,24 @@ void gripperSwitch(int open)
     switch (open)
     {
     case 0:
-        printf("close gripper");
+        printf("close gripper\n");
         pwmWrite(PWM_PIN, 175);
         break;
     case 1:
-        printf("open gripper");
+        printf("open gripper\n");
         pwmWrite(PWM_PIN, 80);
     default:
         break;
     }
+}
+
+int main(){
+    for(int i=0;i<5;i++){
+        gripperSwitch(0);
+        delay(1000);
+        gripperSwitch(1);
+        delay(1000);
+    }
+    gripperSwitch(1);
+    return 0;
 }
