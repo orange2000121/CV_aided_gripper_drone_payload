@@ -48,6 +48,7 @@
 static void *UserDataTransmission_Task(void *arg);
 void throwBall(void *arg);
 void stopCircle();
+void thermalLocation();
 static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len);
 static T_DjiReturnCode ReceiveDataFromOnboardComputer(const uint8_t *data, uint16_t len);
 static T_DjiReturnCode ReceiveDataFromPayload(const uint8_t *data, uint16_t len);
@@ -176,6 +177,9 @@ static void *UserDataTransmission_Task(void *arg)
             break;
         case 2:
             trigger(&dataToBeSent);
+            break;
+        case 3:
+            thermalLocation();
             break;
         default:
             break;
@@ -393,6 +397,9 @@ static T_DjiReturnCode ReceiveDataFromMobile(const uint8_t *data, uint16_t len)
     else if (strcmp(printData, "stop_circle") == 0)
     {
         stopCircle();
+    }else if (strcmp(printData, "thermal") == 0)
+    {
+        sendMode = 3;
     }
     // else if (strcmp(printData, "throw") == 0)
     // {
@@ -515,5 +522,20 @@ void circleLocation()
         printf("circle is null\n");
     }
     sprintf((char *)dataToBeSent, "%s", circle);
+    printf("dataToBeSent: %s\n", dataToBeSent);
+}
+void thermalLocation()
+{
+    char *thermal;
+    getMemData("thermal", &thermal);
+    if (thermal != NULL)
+    {
+        printf("thermal: %s\n", thermal);
+    }
+    else
+    {
+        printf("thermal is null\n");
+    }
+    sprintf((char *)dataToBeSent, "%s", thermal);
     printf("dataToBeSent: %s\n", dataToBeSent);
 }

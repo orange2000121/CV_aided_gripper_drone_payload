@@ -22,7 +22,7 @@ void gripperSwitch(int open)
     {
     case 0:
         printf("close gripper");
-        pwmWrite(PWM_PIN, 160);
+        pwmWrite(PWM_PIN, 180);
         break;
     case 1:
         printf("open gripper");

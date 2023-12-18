@@ -17,5 +17,7 @@ while True:
     y_coor = mc.get('y_coor')
     find_circle = mc.get('find_circle')
     circle = mc.get('circle')
-    print(aruco)
+    thermal = mc.get('thermal')
+    show = json.loads(thermal)
+    print(show)
     sleep(0.5)
